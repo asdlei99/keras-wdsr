@@ -1,7 +1,22 @@
 from keras.layers import Add, Conv2D, Input, Activation
 from keras.models import Model
+from keras import backend as K
 
 from pixel_shuffler import PixelShuffler
+
+
+class Conv2DWeightNorm(Conv2D):
+    def build(self, input_shape):
+        self.wn_g = self.add_weight(name='wn_g',
+                                    shape=(self.filters,),
+                                    initializer='ones',
+                                    trainable=True)
+        super(Conv2DWeightNorm, self).build(input_shape)
+        square_sum = K.sum(K.square(self.kernel))
+        self.kernel = self.kernel / (K.sqrt(square_sum) + K.epsilon()) * self.wn_g
+
+
+Conv2D = Conv2DWeightNorm
 
 
 def res_block_b(x_in, filters):
